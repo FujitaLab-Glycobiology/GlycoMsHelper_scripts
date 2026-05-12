@@ -1,0 +1,1 @@
+candycrunch_predict --spectra_filepath ./241114_SLC35A2_SeqTypsin.mzXML --glycan_class N --mode positive --modification custom --mass_tag 220.1814 --lc other --rt_min 5 --rt_max 50 --spectra True --mass_tolerance 0.5 --output ./output_260415.csv

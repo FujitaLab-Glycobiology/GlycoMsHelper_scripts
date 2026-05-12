@@ -1,0 +1,13 @@
+candycrunch_predict [-h] --spectra_filepath SPECTRA_FILEPATH --glycan_class GLYCAN_CLASS [--mode MODE] [--modification MODIFICATION]
+                           [--mass_tag MASS_TAG] [--lc LC] [--trap TRAP] [--rt_min RT_MIN] [--rt_max RT_MAX] [--rt_diff RT_DIFF] [--spectra SPECTRA]
+                           [--get_missing GET_MISSING] [--mass_tolerance MASS_TOLERANCE] [--filter_out FILTER_OUT] [--supplement SUPPLEMENT]
+                           [--experimental EXPERIMENTAL] [--taxonomy_class TAXONOMY_CLASS] [--plot_glycans PLOT_GLYCANS] --output OUTPUT
+
+Run CandyCrunch prediction.
+
+options:
+candycrunch_predict --spectra_filepath ./241114_SLC35A2_SeqTypsin.mzXML --glycan_class N --mode positive --modification custom --mass_tag 219.1736 --lc other --rt_min 5 --rt_max 50 --spectra True --mass_tolerance 0.5 --output ./output_min_16.csv
+
+
+candycrunch_predict --spectra_filepath ./241114_SLC35A2_SeqTypsin.mzXML --glycan_class N --mode positive --modification custom --mass_tag 220.1814 --lc other --rt_min 5 --rt_max 50 --spectra True --mass_tolerance 0.5 --output ./output_260415.csv
+
