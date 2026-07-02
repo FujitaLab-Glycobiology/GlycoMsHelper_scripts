@@ -10,8 +10,6 @@ library(patchwork)
 
 # devtools::install_github("FujitaLab-Glycobiology/GlycoMsHelper")
 
-setwd('D:/Paper/Manual_scripts/Research_paper/GlycoMSHelper/r_data')
-
 
 #===================
 # Read the MS file
@@ -132,7 +130,7 @@ N_glycan_library_iso_info = GlycoMsHelper::GetMonoisoAndIsotopologueRatio(glycan
                                                                           threshold_iso_probalility = 0.01)
 
 N_glycan_library = N_glycan_library_iso_info$glycan_monosaccharides_library_isotopic_info
-# 
+
 # N_glycan_library = dplyr::mutate(N_glycan_library_iso_info$glycan_monosaccharides_library_isotopic_info, 
 #   glycan_monoisotopic_mz = if_else(
 #     theoretical_monoisotopic_isotopologue_abundance_ratio <= 0.85, 
@@ -142,7 +140,6 @@ N_glycan_library = N_glycan_library_iso_info$glycan_monosaccharides_library_isot
 # 
 # openxlsx::write.xlsx(N_glycan_library,
 #                      file = 'N_glycan_library.xlsx')
-# 
 N_glycan_library = N_glycan_library %>% 
   dplyr::filter(!(
     (H == 0 & Na == 1 & K == 2) | 
@@ -237,11 +234,8 @@ slc35a2_glycan_spectrum_composition_info = GlycoMsHelper::ValidateGlycanComposit
 
 
 
-original_glycan_string = unique(slc35a2_glycan_spectrum_composition_info$glycan_string)
 
-slc35a2_ground_truth_df <- read.xlsx('241114_SLC35A2_SeqTypsin_ms2_spectrum_composition_info_ground_truth.xlsx', sheet = "ground_truth_info")
-
-
+slc35a2_ground_truth_df = readr::read_csv('241114_SLC35A2_SeqTypsin_ground_truth_info.csv')
 
 #====================================
 # glycan composition quantification 
