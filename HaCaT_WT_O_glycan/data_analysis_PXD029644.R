@@ -173,7 +173,8 @@ for (mass_file in mzml_files) {
     ms_data_raw = mass_spectrum_data_filtered, 
     diagnostic_frags_list = diagnostic_frags, 
     diagnostic_frags_exp = 'HexNAc_2AB | Hex_2AB | dHex_2AB', 
-    ppm_val = 50
+    mass_error_tolerance_type = 'ppm_tolerance', 
+    mass_error_tolerance_val = 50
   )
   
   # export(diagnostic_results$selected_ms_data,
@@ -190,7 +191,8 @@ for (mass_file in mzml_files) {
   likely_glycan_spectrum_matching_result = GlycoMsHelper::FindPossibleGlycanComposition(
     spectrum_info = likely_glycan_spectrum_info, 
     glycan_lib = O_glycan_library, 
-    max_precursor_mz_ppm = 50, 
+    precursor_mass_error_tolerance_type = "ppm_tolerance",
+    precursor_mass_error_tolerance_val = 50,
     max_possible_candidates_num = 3
   )
 
@@ -281,6 +283,59 @@ table_s6_keratinocyte_N_TERT_1_WT_50_composition = c(
   )	
   
   
+
+
+
+
+get_combined_results = function(file_names, final_matching_result) {
+  final_output = list()
+  for (name in file_names) {
+    result <- final_matching_result[[name]]$final_spectrum_matching_result
+    result = dplyr::mutate(result, file_name = name)
+    final_output[[name]] = result
+  }
+  return(final_output)
+}
+
+HaCaT_WT_all_ideintified = get_combined_results(
+  file_names = HaCaT_WT_all_file_names, 
+  final_matching_result = all_results
+)
+
+
+HaCaT_WT_all_ideintified_results = dplyr::bind_rows(HaCaT_WT_all_ideintified)
+
+HaCaT_WT_all_ideintified_results_sum = HaCaT_WT_all_ideintified_results %>% 
+  dplyr::mutate(adduct_type = paste0(ifelse(H  > 0, paste0("H", H), "")
+                                     )) %>% 
+  dplyr::select(Pentose, Hex, HexNAc, dHex, Neu5Ac, HexA, Neu5Gc, 
+                file_name, adduct_type, total_charge, 
+                glycan_string, ms2_spectrum_id, ms2_retention_time, 
+                ion_formula, theoretical_monoisotopic_mz, 
+                ms1_spectrum_id, ms2_precursor_mz, ms2_total_ion_current) %>% 
+  group_by(glycan_string) %>%
+  summarise(
+    across(c(Pentose, Hex, HexNAc, dHex, Neu5Ac, HexA, Neu5Gc, total_charge, adduct_type, 
+             ion_formula, theoretical_monoisotopic_mz), first),
+    ms2_spectrum_ids = paste(ms2_spectrum_id, collapse = ", "), 
+    file_names = paste(unique(file_name), collapse = ", "),
+    ms2_precursor_mzs = paste(ms2_precursor_mz, collapse = ", "),
+    ms2_precursor_mzs = paste(ms2_precursor_mz, collapse = ", "),
+    ms2_retention_times = paste(ms2_retention_time, collapse = ", "), 
+    ms1_spectrum_ids = paste(unique(ms1_spectrum_id), collapse = ", "), 
+    ms2_tic_sum = sum(ms2_total_ion_current), 
+    n_spectra = n(),
+    .groups = "drop"
+  )
+
+write.csv(HaCaT_WT_all_ideintified_results_sum, file = 'Table3.csv')
+
+
+
+
+
+
+
 
 
 
@@ -1220,7 +1275,7 @@ identify_only
 for (file_name in HaCaT_WT_all_file_names) {
   temp_result = all_results[[file_name]]$final_spectrum_matching_result
   
-  temp_result_comp = dplyr::filter(temp_result, glycan_string == "Hex3dHex1" ) 
+  temp_result_comp = dplyr::filter(temp_result, glycan_string == "Hex3" ) 
   ms2_id = temp_result_comp$ms2_spectrum_id
   
   if (dim(temp_result_comp)[1] >= 1) {

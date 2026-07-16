@@ -1,14 +1,90 @@
 library(Spectra)
 library(GlycoMsHelper)
-# library(devtools)
+library(devtools)
 library(openxlsx)
 library(dplyr)
 library(ggplot2)
 library(pROC)
 library(eulerr)
 library(patchwork)
+library(readr)
 
 # devtools::install_github("FujitaLab-Glycobiology/GlycoMsHelper")
+
+setwd('D:/Paper/Manual_scripts/Research_paper/GlycoMSHelper/r_data')
+
+
+#===========================
+# construct the glycan lib 
+#===========================
+molecular_formula_all = c(
+  # monosaccharides
+  Hex = 'C6H10O5',
+  HexNAc = 'C8H13N1O5',
+  dHex = 'C6H10O4',
+  Neu5Ac = 'C11H17N1O8',
+  HexA = 'C6H8O6',
+  Neu5Gc = 'C11H17N1O9',
+  Pentose = 'C5H8O4',
+  KDN = 'C9H14O8', 
+  EtNP = 'C2H6N1O3P1', 
+  AHM = 'C6H8O4', 
+  # label
+  ProA = 'C13H23N3O1', 
+  AB = 'C7H10N2', 
+  PA = 'C5H8N2', 
+  # adduct
+  H = 'H1',
+  Na = 'Na1',
+  K = 'K1',
+  Li = 'Li1',
+  Mg = 'Mg1'
+)
+
+N_glycan_lib = GlycoMsHelper::ConstructGlycanLibrary(
+  glycan_type = 'N_glycan', 
+  min_charge_state = 1, max_charge_state = 3, 
+  derivatization_type = 'ProA', 
+  adduct_type = c('H', 'Na', 'K'), 
+  min_total_monosaccharides_num = 3, 
+  max_total_monosaccharides_num = 22, 
+  min_Hex_num = 1,      max_Hex_num = 12, 
+  min_HexNAc_num = 2,   max_HexNAc_num = 10, 
+  min_dHex_num = 0,     max_dHex_num = 4, 
+  min_Neu5Ac_num = 0,   max_Neu5Ac_num = 4, 
+  min_HexA_num = 0,     max_HexA_num = 0, 
+  min_Neu5Gc_num = 0,   max_Neu5Gc_num = 0, 
+  min_Pentose_num = 0,  max_Pentose_num = 0, 
+  min_KDN_num = 0,      max_KDN_num = 0
+)
+
+# N_glycan_library = N_glycan_lib$glycan_monosaccharides_library
+N_glycan_library_iso_info = GlycoMsHelper::GetMonoisoAndIsotopologueRatio(glycan_lib = N_glycan_lib$glycan_monosaccharides_library,
+                                                                          molecular_names = colnames(N_glycan_lib$monosaccharides_adduct_num),
+                                                                          molecular_formula_list = molecular_formula_all,
+                                                                          monosaccharides_names = colnames(N_glycan_lib$monosaccharides_combination),
+                                                                          threshold_iso_probalility = 0.01)
+
+N_glycan_library = N_glycan_library_iso_info$glycan_monosaccharides_library_isotopic_info
+# 
+# N_glycan_library = dplyr::mutate(N_glycan_library_iso_info$glycan_monosaccharides_library_isotopic_info, 
+#   glycan_monoisotopic_mz = if_else(
+#     theoretical_monoisotopic_isotopologue_abundance_ratio <= 0.85, 
+#     theoretical_isotopologue_mz, glycan_monoisotopic_mz
+#   ) 
+# )
+# 
+
+# 
+# N_glycan_library = N_glycan_library %>%
+#   dplyr::filter(!(
+#     (H == 0 & Na == 1 & K == 2) |
+#       (H == 0 & Na == 2 & K == 1) |
+#       (H == 0 & Na == 3 & K == 0) |
+#       (H == 0 & Na == 0 & K == 3)
+#   ))
+openxlsx::write.xlsx(N_glycan_library,
+                     file = 'N_glycan_library.xlsx')
 
 
 #===================
@@ -77,81 +153,6 @@ slc35a2_mass_spectrum_data_filtered_denoised = slc35a2_denoised_results$denoised
 #        file = paste0(slc35a2_file_name, '_qc_denoised.mzML'), BPPARAM = SerialParam())
 
 
-
-#===========================
-# construct the glycan lib 
-#===========================
-molecular_formula_all = c(
-  # monosaccharides
-  Hex = 'C6H10O5',
-  HexNAc = 'C8H13N1O5',
-  dHex = 'C6H10O4',
-  Neu5Ac = 'C11H17N1O8',
-  HexA = 'C6H8O6',
-  Neu5Gc = 'C11H17N1O9',
-  Pentose = 'C5H8O4',
-  KDN = 'C9H14O8', 
-  EtNP = 'C2H6N1O3P1', 
-  AHM = 'C6H8O4', 
-  # label
-  ProA = 'C13H23N3O1', 
-  AB = 'C7H10N2', 
-  PA = 'C5H8N2', 
-  # adduct
-  H = 'H1',
-  Na = 'Na1',
-  K = 'K1',
-  Li = 'Li1',
-  Mg = 'Mg1'
-)
-
-N_glycan_lib = GlycoMsHelper::ConstructGlycanLibrary(
-  glycan_type = 'N_glycan', 
-  min_charge_state = 1, max_charge_state = 3, 
-  derivatization_type = 'ProA', 
-  adduct_type = c('H', 'Na', 'K'), 
-  min_total_monosaccharides_num = 3, 
-  max_total_monosaccharides_num = 22, 
-  min_Hex_num = 1,      max_Hex_num = 12, 
-  min_HexNAc_num = 2,   max_HexNAc_num = 10, 
-  min_dHex_num = 0,     max_dHex_num = 4, 
-  min_Neu5Ac_num = 0,   max_Neu5Ac_num = 4, 
-  min_HexA_num = 0,     max_HexA_num = 0, 
-  min_Neu5Gc_num = 0,   max_Neu5Gc_num = 0, 
-  min_Pentose_num = 0,  max_Pentose_num = 0, 
-  min_KDN_num = 0,      max_KDN_num = 0
-)
-
-# N_glycan_library = N_glycan_lib$glycan_monosaccharides_library
-N_glycan_library_iso_info = GlycoMsHelper::GetMonoisoAndIsotopologueRatio(glycan_lib = N_glycan_lib$glycan_monosaccharides_library,
-                                                                          molecular_names = colnames(N_glycan_lib$monosaccharides_adduct_num),
-                                                                          molecular_formula_list = molecular_formula_all,
-                                                                          monosaccharides_names = colnames(N_glycan_lib$monosaccharides_combination),
-                                                                          threshold_iso_probalility = 0.01)
-
-N_glycan_library = N_glycan_library_iso_info$glycan_monosaccharides_library_isotopic_info
-
-# N_glycan_library = dplyr::mutate(N_glycan_library_iso_info$glycan_monosaccharides_library_isotopic_info, 
-#   glycan_monoisotopic_mz = if_else(
-#     theoretical_monoisotopic_isotopologue_abundance_ratio <= 0.85, 
-#     theoretical_isotopologue_mz, glycan_monoisotopic_mz
-#   ) 
-# )
-# 
-# openxlsx::write.xlsx(N_glycan_library,
-#                      file = 'N_glycan_library.xlsx')
-N_glycan_library = N_glycan_library %>% 
-  dplyr::filter(!(
-    (H == 0 & Na == 1 & K == 2) | 
-      (H == 0 & Na == 2 & K == 1) |
-      (H == 0 & Na == 3 & K == 0) |
-      (H == 0 & Na == 0 & K == 3)
-  ))
-
-
-
-
-
 #=================================================================
 # Find the spectrum likely to be glycan based on diagnostic ions 
 #=================================================================
@@ -176,7 +177,8 @@ slc35a2_diagnostic_results = GlycoMsHelper::FindSpectrumByDiagnosticFragments(
   diagnostic_frags_list = diagnostic_frags, 
   diagnostic_frags_exp = 'HexNAc & (HexNAc_ProA | dHex_HexNAc_ProA) & !Hex_HexNAc_ProA', 
     # 'HexNAc_ProA | dHex_HexNAc_ProA', # 'HexNAc & (HexNAc_ProA | dHex_HexNAc_ProA) & !Hex_HexNAc_ProA', 
-  ppm_val = 70
+  mass_error_tolerance_type = 'ppm_tolerance', 
+  mass_error_tolerance_val = 70
 )
 
 
@@ -193,7 +195,8 @@ slc35a2_likely_glycan_spectrum_info = slc35a2_diagnostic_results$spectrum_info
 slc35a2_spectrum_matching_result = GlycoMsHelper::FindPossibleGlycanComposition(
   spectrum_info = slc35a2_likely_glycan_spectrum_info, 
   glycan_lib = N_glycan_library, 
-  max_precursor_mz_ppm = 20, 
+  precursor_mass_error_tolerance_type = "ppm_tolerance",
+  precursor_mass_error_tolerance_val = 20, 
   max_possible_candidates_num = 3
 )
 
@@ -216,11 +219,36 @@ slc35a2_glycan_spectrum_composition_info = GlycoMsHelper::ValidateGlycanComposit
   threshold_iso_probalility = 0.01
 )
 
+
+
 # openxlsx::write.xlsx(slc35a2_glycan_spectrum_composition_info,
 #                      file = paste0(slc35a2_file_name, '_ms2_spectrum_composition_info.xlsx'))
 
 
 
+slc35a2_glycan_spectrum_composition_info_sum = slc35a2_glycan_spectrum_composition_info %>% 
+  dplyr::mutate(adduct_type = paste0(ifelse(H  > 0, paste0("H", H), ""), 
+                                     ifelse(K  > 0, paste0("K", K), ""), 
+                                     ifelse(Na  > 0, paste0("Na", Na), ""))) %>% 
+  dplyr::select(Hex, HexNAc, dHex, Neu5Ac, HexA, Neu5Gc, adduct_type, total_charge, 
+                glycan_string, ms2_spectrum_id, ms2_retention_time, 
+                ion_formula, theoretical_monoisotopic_mz, 
+                ms1_spectrum_id, ms2_precursor_mz, ms2_total_ion_current) %>% 
+  group_by(glycan_string, adduct_type) %>%
+  summarise(
+    across(c(Hex, HexNAc, dHex, Neu5Ac, HexA, Neu5Gc, total_charge, 
+             ion_formula, theoretical_monoisotopic_mz), first),
+    ms2_spectrum_ids = paste(ms2_spectrum_id, collapse = ", "),
+    ms2_precursor_mzs = paste(ms2_precursor_mz, collapse = ", "), 
+    ms2_retention_times = paste(ms2_retention_time, collapse = ", "), 
+    ms1_spectrum_ids = paste(unique(ms1_spectrum_id), collapse = ", "), 
+    ms2_tic_sum = sum(ms2_total_ion_current), 
+    n_spectra = n(),
+    .groups = "drop"
+  )
+
+
+write.csv(slc35a2_glycan_spectrum_composition_info_sum, file = '241114_SLC35A2_SeqTypsin_glycan_composition_summary_GlycoMsHelper.csv')
 
 
 
@@ -235,7 +263,11 @@ slc35a2_glycan_spectrum_composition_info = GlycoMsHelper::ValidateGlycanComposit
 
 
 
-slc35a2_ground_truth_df = readr::read_csv('241114_SLC35A2_SeqTypsin_ground_truth_info.csv')
+original_glycan_string = unique(slc35a2_glycan_spectrum_composition_info$glycan_string)
+
+slc35a2_ground_truth_df <- read.xlsx('241114_SLC35A2_SeqTypsin_ms2_spectrum_composition_info_ground_truth.xlsx', sheet = "ground_truth_info")
+
+
 
 #====================================
 # glycan composition quantification 
@@ -297,7 +329,7 @@ slc35a2_ground_truth_info = dplyr::mutate(slc35a2_ground_truth_info,
 # write.csv(slc35a2_ground_truth_info, file = '241114_SLC35A2_SeqTypsin_ground_truth_info.csv')
 
 # function=4 process=0 scan=1054 and function=4 process=0 scan=1055 were manually changed
-slc35a2_ground_truth_info = read_csv("241114_SLC35A2_SeqTypsin_ground_truth_info.csv")
+slc35a2_ground_truth_info = readr::read_csv("241114_SLC35A2_SeqTypsin_ground_truth_info.csv")
 
 
 tic_all = sum(slc35a2_ground_truth_info$tic)
@@ -387,13 +419,15 @@ for (idx in seq_along(ppm_vec)) {
   slc35a2_diagnostic_results_ms2 = GlycoMsHelper::FindSpectrumByDiagnosticFragments(
     ms_data = slc35a2_mass_spectrum_data_filtered_denoised, ms_data_raw = slc35a2_mass_spectrum_data_filtered, 
     diagnostic_frags_list = diagnostic_frags, diagnostic_frags_exp = 'HexNAc & (HexNAc_ProA | dHex_HexNAc_ProA) & !Hex_HexNAc_ProA', 
-    ppm_val = i
+    mass_error_tolerance_type = 'ppm_tolerance', 
+    mass_error_tolerance_val = i
   )
   slc35a2_likely_glycan_spectrum_info_ms2 = slc35a2_diagnostic_results_ms2$spectrum_info
   # match the ms2 spectrum info to glycan lib 
   slc35a2_spectrum_matching_result_ms2 = GlycoMsHelper::FindPossibleGlycanComposition(
     spectrum_info = slc35a2_likely_glycan_spectrum_info_ms2, 
-    glycan_lib = N_glycan_library, max_precursor_mz_ppm = 20, max_possible_candidates_num = 3
+    glycan_lib = N_glycan_library, precursor_mass_error_tolerance_type = "ppm_tolerance", precursor_mass_error_tolerance_val = 20, 
+    max_possible_candidates_num = 3
   )
   # find the composition by isotopics distribution
   slc35a2_glycan_spectrum_composition_info_ms2 = GlycoMsHelper::ValidateGlycanCompositionByIsotopePattern(
@@ -452,8 +486,8 @@ best_point <- f1_score_summary %>%
   dplyr::filter(ppm_val == min(ppm_val))
 
 
-pdf(file = '241114_SLC35A2_SeqTypsin_f1_ppm.pdf', 
-    width = 7, height = 7)
+# pdf(file = '241114_SLC35A2_SeqTypsin_f1_ppm.pdf', 
+#     width = 7, height = 7)
 
 ggplot(f1_score_summary, aes(x = ppm_val, y = f1)) +
   geom_line(linewidth = 1.2) +
@@ -699,7 +733,9 @@ for (idx in seq_along(ppm_vec_ms1)) {
   # match the ms2 spectrum info to glycan lib 
   slc35a2_spectrum_matching_result_ms1 = GlycoMsHelper::FindPossibleGlycanComposition(
     spectrum_info = slc35a2_likely_glycan_spectrum_info_ms1, 
-    glycan_lib = N_glycan_library, max_precursor_mz_ppm = i, max_possible_candidates_num = 3
+    glycan_lib = N_glycan_library, 
+    precursor_mass_error_tolerance_type = "ppm_tolerance", precursor_mass_error_tolerance_val = i, 
+    max_possible_candidates_num = 3
   )
   # find the composition by isotopics distribution
   slc35a2_glycan_spectrum_composition_info_ms1 = GlycoMsHelper::ValidateGlycanCompositionByIsotopePattern(
@@ -1418,7 +1454,7 @@ Hex3HexNAc5dHex1_H_K$de_noise_info_plot
 dev.off()
 dev.off()
 
-pdf(file = 'Hex3HexNAc5dHex1_H_K_spline_spar_info_plot.pdf', , width = 8, height = 8)
+pdf(file = 'Hex3HexNAc5dHex1_H_K_spline_spar_info_plot.pdf', width = 8, height = 8)
 Hex3HexNAc5dHex1_H_K$spline_spar_info_plot
 dev.off()
 dev.off()
@@ -1427,6 +1463,24 @@ dev.off()
 
 
 
+# Hex7HexNAc2_2H
+Hex7HexNAc2_2H = GetDenoiseInfo(denoising_detail = ms2_denoising_detail_default, 
+                                      denoising_method = 'spline_segmentation_regression', 
+                                      ms2_spectrum_transform_method = 'log2_transform', 
+                                      ms_id = "function=2 process=0 scan=1052", 
+                                      ms_data = slc35a2_mass_spectrum_data_filtered) 
+
+pdf(file = 'Hex7HexNAc2_2H_mass_spectra_denoised_plot.pdf', width = 18, height = 8)
+Hex7HexNAc2_2H$mass_spectra_denoised_plot
+dev.off()
+dev.off()
+
+
+
+ms_id_all = slc35a2_mass_spectrum_data[["spectrumId"]]
+ms_idx = which(ms_id_all == "function=2 process=0 scan=1052")
+
+spectra_data_raw = as.data.frame(Spectra::peaksData(slc35a2_mass_spectrum_data)[[ms_idx]])
 
 
 
@@ -1448,6 +1502,107 @@ ms2_spectrum_similarity_info$similarity_score_heatmap
 dev.off()
 dev.off()
 
+
+
+
+
+
+
+#=======================
+# isotopic distribution
+#=======================
+library(enviPat)
+
+# function=3 process=0 scan=1129
+# function=3 process=0 scan=1130
+
+# Hex4HexNAc6, H1Na1K1: H142C85N9O51Na1K1
+# Hex3HexNAc6dHex1, H1K2: H142C85N9O50K2
+
+
+data(isotopes)
+
+
+# Hex4HexNAc6, H1Na1K1
+molecular_formula_Hex4HexNAc6_H1Na1K1 = 
+  enviPat::check_chemform(isotopes, 'H142C85N9O51Na1K1', get_sorted = T)
+
+new_molecular_formula_Hex4HexNAc6_H1Na1K1 = molecular_formula_Hex4HexNAc6_H1Na1K1$new_formula
+
+molecular_iso_pattern_Hex4HexNAc6_H1Na1K1 = 
+  enviPat::isopattern(isotopes, new_molecular_formula_Hex4HexNAc6_H1Na1K1,
+                                            charge = 3, rel_to = 2, threshold = 0.01, verbose = F)
+
+theoretical_iso_pattern_Hex4HexNAc6_H1Na1K1 = 
+  as.data.frame(molecular_iso_pattern_Hex4HexNAc6_H1Na1K1[[1]]) %>% 
+  dplyr::rename(mz = `m/z`)
+
+
+pdf(file = 'Hex4HexNAc6_H1Na1K1_theoretical_iso_pattern.pdf', width = 5, height = 7)
+
+ggplot(theoretical_iso_pattern_Hex4HexNAc6_H1Na1K1, aes(x = mz, y = abundance)) +
+  geom_segment(aes(xend = mz, y = 0, yend = abundance),
+               linewidth = 0.8) +
+  geom_text(
+    aes(label = round(mz, 4)),
+    vjust = -0.7,
+    size = 3
+  ) + 
+  coord_cartesian(
+    xlim = c(722, 724),
+    ylim = c(0, 0.35)
+  ) + 
+  labs(
+    x = "m/z",
+    y = "Relative abundance (%)",
+    title = "Theoretical isotope pattern",
+    subtitle = paste0("Hex4HexNAc6_H1Na1K1")
+  ) +
+  theme_classic(base_size = 14)
+dev.off()
+dev.off()
+
+
+
+
+# Hex3HexNAc6dHex1, H1K2
+molecular_formula_Hex3HexNAc6dHex1_H1K2 = 
+  enviPat::check_chemform(isotopes, 'H142C85N9O50K2', get_sorted = T)
+
+new_molecular_formula_Hex3HexNAc6dHex1_H1K2 = molecular_formula_Hex3HexNAc6dHex1_H1K2$new_formula
+
+molecular_iso_pattern_Hex3HexNAc6dHex1_H1K2 = 
+  enviPat::isopattern(isotopes, new_molecular_formula_Hex3HexNAc6dHex1_H1K2,
+                                                                charge = 3, rel_to = 2, threshold = 0.01, verbose = F)
+
+theoretical_iso_pattern_Hex3HexNAc6dHex1_H1K2 = 
+  as.data.frame(molecular_iso_pattern_Hex3HexNAc6dHex1_H1K2[[1]]) %>% 
+  dplyr::rename(mz = `m/z`)
+
+
+pdf(file = 'Hex3HexNAc6dHex1_H1K2_theoretical_iso_pattern.pdf', width = 5, height = 7)
+
+ggplot(theoretical_iso_pattern_Hex3HexNAc6dHex1_H1K2, aes(x = mz, y = abundance)) +
+  geom_segment(aes(xend = mz, y = 0, yend = abundance),
+               linewidth = 0.8) +
+  geom_text(
+    aes(label = round(mz, 4)),
+    vjust = -0.7,
+    size = 3
+  ) + 
+  coord_cartesian(
+    xlim = c(722, 724),
+    ylim = c(0, 0.35)
+  ) + 
+  labs(
+    x = "m/z",
+    y = "Relative abundance (%)",
+    title = "Theoretical isotope pattern",
+    subtitle = paste0("Hex3HexNAc6dHex1_H1K2")
+  ) +
+  theme_classic(base_size = 14)
+dev.off()
+dev.off()
 
 
 
@@ -1524,406 +1679,6 @@ if (ms2_denoising_method == 'spline_segmentation_regression') {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-stack <- c(
-  "#9FC5DC",  # 很浅
-  "#5F9FC4",  # 中浅
-  "#2E7FB2",  # 中
-  "#06639E"   
-
-  "#A6D3A3",  # 浅绿
-  "#6EB66A",  # 中绿
-  "#3D8539"   # 深绿（原色）
-
-
-
-  "#E59A97",  # 浅红
-  "#CE5B58"   # 原色
-
-
-
-
-
-  "#F0A3A1",  # 浅珊瑚红
-  "#D97976"   # 中等红（比 #CE5B58 更浅）
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-test = slc35a2_ground_truth_info_groupby_adduct %>% 
-  mutate(glycan_string_new = factor(glycan_string, levels = glycan_order))
-
-
-
-
-
-ggplot(glycan_data,
-       aes(x = glycan_string, y = abundance, fill = adduct_type)) +
-  geom_col() +
-  theme_classic() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-
-
-
-glycan_abundance = list()
-
-for (i in unique(slc35a2_ground_truth_info$glycan_string)) {
-  temp_data = dplyr::filter(slc35a2_ground_truth_info, glycan_string == i)
-  glycan_abundance[[i]] = sum(temp_data$tic)
-}
-
-glycan_abundance_df = data.frame(
-  glycan_string = names(glycan_abundance),
-  sum_tic = unlist(glycan_abundance)
-)
-
-rownames(glycan_abundance_df) <- NULL
-
-tic_all = sum(glycan_abundance_df$sum_tic)
-
-glycan_abundance_df = dplyr::mutate(glycan_abundance_df, relative_abundance = sum_tic/tic_all)
-
-
-
-
-
-ggplot(
-  glycan_abundance_df,
-  aes(y = reorder(glycan_string, relative_abundance),
-      x = relative_abundance)
-) +
-  geom_col() +
-  theme_classic()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"#9CC1D6"
-
-'#9ABDD1'
-
-
-cyan_palette =   c("#C6DCDC", "#9FC4C4", "#7FA8A8", "#5E8787")
-blue_palette =   c("#D2DCEB", "#AFC1DC", "#8FA8C6", "#6D87A8")
-purple_palette = c("#E1D3E0", "#C9AFC7", "#B58FB2", "#946F92")
-rose_palette =   c("#F0D2D2", "#E5AFAF", "#D48C8C", "#B46B6B")
-beige_palette =  c("#F3E6D7", "#E6D0B8", "#D9BFA0", "#C7A888")
-
-sage_palette =   c("#E3EDDE", "#C9DDBF", "#B2CEA4", "#93B486")
-teal_palette =   c("#D7E7EC", "#B6D2DB", "#9FC1CC", "#7EA8B5")
-
-
-
-
-
-
-identified_only_info = venn_data %>% 
-  dplyr::filter(glycan_string %in% identified_only_comp)
-
-
-
-
-groundtruth_only_info_pie_chart = list(unique())
-
-
-
-df <- data.frame(
-  group = c("TP", "FP", "FN", "TN"),
-  value = c(479, 68, 458, 6863)
-)
-
-ggplot(df, aes(x = "", y = value, fill = group)) +
-  geom_col(width = 1) +
-  coord_polar(theta = "y") +
-  theme_void()
-
-
-
-
-
-length(groundtruth_only_data)
-length(identified_only_data)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cyan_palette =   c("#C6DCDC", "#9FC4C4", "#7FA8A8", "#5E8787")
-blue_palette =   c("#D2DCEB", "#AFC1DC", "#8FA8C6", "#6D87A8")
-purple_palette = c("#E1D3E0", "#C9AFC7", "#B58FB2", "#946F92")
-rose_palette =   c("#F0D2D2", "#E5AFAF", "#D48C8C", "#B46B6B")
-beige_palette =  c("#F3E6D7", "#E6D0B8", "#D9BFA0", "#C7A888")
-
-sage_palette =   c("#E3EDDE", "#C9DDBF", "#B2CEA4", "#93B486")
-teal_palette =   c("#D7E7EC", "#B6D2DB", "#9FC1CC", "#7EA8B5")
-mauve_palette =  c("#E8D9E5", "#D3B7CF", "#C29DBE", "#A87FA4")
-salmon_palette = c("#F4D9D2", "#E8B7AC", "#DB9A8F", "#C57C71")
-orange_palette = c("#F6E0C8", "#EDC08F", "#E1A35C", "#C5823F")
-
-
-
-df <- data.frame(
-  group = c("TP", "FP", "FN", "TN"),
-  value = c(479, 68, 458, 6863)
-)
-
-ggplot(df, aes(x = "", y = value, fill = group)) +
-  geom_col(width = 1) +
-  coord_polar(theta = "y") +
-  theme_void()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-ms2_spectrum_similarity_info = GetMS2SpectrumSimilarityScore(ms_data = slc35a2_mass_spectrum_data_filtered, 
-                                                             spectrum_matching_result = slc35a2_glycan_spectrum_composition_info, 
-                                                             glycan_composition_str = 'Hex3HexNAc8dHex1', 
-                                                             adduct_type = c(H = 2, Na = 0, K = 0), 
-                                                             bin_width = 0.3, 
-                                                             ms2_range_start = 100, 
-                                                             ms2_range_end = 2200) 
-
-
-
-
-
-
-
-
-
-
-
-
-testx = c(1, 2, 3, 4, 5, 6, 7, 8)
-testy = c(1, 4.5, 10, 19, 30, 40, 60, 70)
-
-testx_non_linear = testx^2
-fit_test = stats::lm(testy ~ testx_non_linear)
-
-pred_y <- stats::predict(fit_test, testx)$y
-
-
-stats::predict(fit_test, testx_non_linear, deriv = 1)$y
-
-pred_y$y
-
-
-
-
-
-testx = c(1, 2, 3, 4, 5, 6, 7, 8)
-testy = c(1, 4.5, 10, 19, 30, 40, 60, 70)
-
-testx_non_linear = testx^2
-fit_test = stats::lm(testy ~ testx_non_linear)
-
-pred_y <- stats::predict(
-  fit_test,
-  newdata = data.frame(testx_non_linear = testx^2)
-)
-
-pred_y
-
-
-
-ms2_id_gt = slc35a2_ground_truth_info$ms2_spectrum_id
-
-test = slc35a2_denoised_results$denoising_regression_info %>% 
-  dplyr::filter(denoising_method == 'Segmentation_regresion') %>% 
-  filter(ms2_spectrum_id %in% ms2_id_gt)
-
-
-
-ggplot(test, aes(x = slope_non_linear, y = slope_non_linear)) +
-  geom_jitter(width = 0.2, size = 2) +
-  theme_classic()
-
-
-
-
-
-ms2_spectrum_similarity_info = GlycoMsHelper::GetMS2SpectrumSimilarityScore(ms_data = slc35a2_mass_spectrum_data_filtered, 
-                                                             spectrum_matching_result = slc35a2_glycan_spectrum_composition_info, 
-                                                             glycan_composition_str = 'Hex3HexNAc4dHex1', 
-                                                             adduct_type = c(H = 2, Na = 0, K = 0), 
-                                                             bin_width = 0.3, 
-                                                             ms2_range_start = 100, 
-                                                             ms2_range_end = 2200) 
-
-col_fun = circlize::colorRamp2(
-  seq(0, 1, length.out = 10),
-  c(
-    '#F8F8F8',
-    '#F3EFD9',
-    '#ECE4C9',
-    '#E4D6B6',
-    '#DBC6A4',
-    '#D1B390',
-    '#C69D82',
-    '#B88476',
-    '#A96C6E',
-    '#955667'
-  )
-)
-
-
-
-
-
-youden_df <- f1_score_summary_ms1 %>%
-  mutate(youden_index = tpr - fpr)
-
-# 找最佳ppm
-best_point <- youden_df %>%
-  filter(youden_index == max(youden_index, na.rm = TRUE))
-
-# 作图
-ggplot(youden_df, aes(x = ppm_val, y = youden_index)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  
-  # 标出最佳点
-  geom_point(data = best_point, color = "red", size = 3) +
-  geom_vline(data = best_point, aes(xintercept = ppm_val), 
-             linetype = "dashed") +
-  
-  labs(
-    x = "ppm tolerance",
-    y = "Youden index (TPR - FPR)",
-    title = "Youden Index vs ppm tolerance"
-  ) +
-  theme_classic()
-
-
-
-
-test <- f1_score_summary_ms1 %>%
-  mutate(
-    mcc = (tp * tn - fp * fn) /
-      sqrt((tp + fp)*(tp + fn)*(tn + fp)*(tn + fn))
-  )
-
-plot_df <- test %>%
-  filter(!is.na(mcc), !is.nan(mcc))
-
-# 找最大 MCC 点
-best_point <- plot_df %>%
-  filter(mcc == max(mcc, na.rm = TRUE))
-
-ggplot(plot_df, aes(x = ppm_val, y = mcc)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  
-  # 标出最优点
-  geom_point(data = best_point, color = "red", size = 3) +
-  geom_vline(data = best_point,
-             aes(xintercept = ppm_val),
-             linetype = "dashed") +
-  
-  labs(
-    x = "ppm tolerance",
-    y = "MCC (Matthews Correlation Coefficient)",
-    title = "MCC vs ppm tolerance"
-  ) +
-  theme_classic()
 
 
 

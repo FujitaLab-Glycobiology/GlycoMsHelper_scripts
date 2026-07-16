@@ -84,13 +84,13 @@ gsl_library = gsl_library_iso_info$glycan_monosaccharides_library_isotopic_info
 #       (H == 0 & Na == 3 & K == 0) |
 #       (H == 0 & Na == 0 & K == 3)
 #   ))
-gsl_library = gsl_library %>% 
-  dplyr::filter(!(
-      (H == 0 & K == 3)
-  ))
+# gsl_library = gsl_library %>% 
+#   dplyr::filter(!(
+#       (H == 0 & K == 3)
+#   ))
 
 
-
+ 
 
 
 
@@ -186,7 +186,8 @@ for (mass_file in mzml_files) {
     ms_data_raw = mass_spectrum_data_filtered, 
     diagnostic_frags_list = diagnostic_frags, 
     diagnostic_frags_exp = 'Hex_Hex_ProA & (HexNAc | Hex_ProA | Hex_HexNAc)', 
-    ppm_val = 100
+    mass_error_tolerance_type = 'ppm_tolerance', 
+    mass_error_tolerance_val = 100
   )
   
   likely_glycan_spectrum_info = diagnostic_results$spectrum_info
@@ -197,7 +198,8 @@ for (mass_file in mzml_files) {
   likely_glycan_spectrum_matching_result = GlycoMsHelper::FindPossibleGlycanComposition(
     spectrum_info = likely_glycan_spectrum_info, 
     glycan_lib = gsl_library, 
-    max_precursor_mz_ppm = 100, 
+    precursor_mass_error_tolerance_type = "ppm_tolerance",
+    precursor_mass_error_tolerance_val = 100, 
     max_possible_candidates_num = 3
   )
   
@@ -400,9 +402,10 @@ hek293_gsl_final_spectrum_matching_result_summ = all_results$`240905_5`$final_sp
                 ms1_spectrum_id, ms2_precursor_mz, ms2_total_ion_current) %>% 
   group_by(glycan_string, adduct_type) %>%
   summarise(
-    across(c(Hex, HexNAc, dHex, Neu5Ac, Neu5Gc, total_charge, ms2_precursor_mz, 
+    across(c(Hex, HexNAc, dHex, Neu5Ac, Neu5Gc, total_charge, 
              ion_formula, theoretical_monoisotopic_mz), first),
-    ms2_spectrum_ids = paste(ms2_spectrum_id, collapse = ", "),
+    ms2_spectrum_ids = paste(ms2_spectrum_id, collapse = ", "), 
+    ms2_precursor_mzs = paste(ms2_precursor_mz, collapse = ", "),
     ms2_retention_times = paste(ms2_retention_time, collapse = ", "), 
     ms1_spectrum_ids = paste(unique(ms1_spectrum_id), collapse = ", "), 
     ms2_tic_sum = sum(ms2_total_ion_current), 
@@ -410,7 +413,8 @@ hek293_gsl_final_spectrum_matching_result_summ = all_results$`240905_5`$final_sp
     .groups = "drop"
   )
 
-write.csv(hek293_gsl_final_spectrum_matching_result_summ, file = '240905_5_hek293_gsl_spectrum_matching_result_final_sum.csv')
+write.csv(hek293_gsl_final_spectrum_matching_result_summ, file = 'Table2.csv')
+#write.csv(hek293_gsl_final_spectrum_matching_result_summ, file = '240905_5_hek293_gsl_spectrum_matching_result_final_sum.csv')
 
 
 

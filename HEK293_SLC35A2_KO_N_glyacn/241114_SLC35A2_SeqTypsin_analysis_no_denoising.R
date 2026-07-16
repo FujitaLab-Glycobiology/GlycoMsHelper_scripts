@@ -24,7 +24,9 @@ slc35a2_diagnostic_results_no_denoising = GlycoMsHelper::FindSpectrumByDiagnosti
   diagnostic_frags_list = diagnostic_frags, 
   diagnostic_frags_exp = 'HexNAc & (HexNAc_ProA | dHex_HexNAc_ProA) & !Hex_HexNAc_ProA', 
   # 'HexNAc_ProA | dHex_HexNAc_ProA', # 'HexNAc & (HexNAc_ProA | dHex_HexNAc_ProA) & !Hex_HexNAc_ProA', 
-  ppm_val = 80
+  mass_error_tolerance_type = 'ppm_tolerance', 
+  mass_error_tolerance_val = 80
+  
 )
 
 
@@ -41,7 +43,8 @@ slc35a2_likely_glycan_spectrum_info_no_denoising = slc35a2_diagnostic_results_no
 slc35a2_spectrum_matching_result_no_denoising = GlycoMsHelper::FindPossibleGlycanComposition(
   spectrum_info = slc35a2_likely_glycan_spectrum_info_no_denoising, 
   glycan_lib = N_glycan_library, 
-  max_precursor_mz_ppm = 20, 
+  precursor_mass_error_tolerance_type = "ppm_tolerance",
+  precursor_mass_error_tolerance_val = 20,
   max_possible_candidates_num = 3
 )
 
@@ -107,13 +110,17 @@ for (idx in seq_along(ppm_vec)) {
   slc35a2_diagnostic_results_ms2 = GlycoMsHelper::FindSpectrumByDiagnosticFragments(
     ms_data = slc35a2_mass_spectrum_data_filtered, ms_data_raw = slc35a2_mass_spectrum_data_filtered, 
     diagnostic_frags_list = diagnostic_frags, diagnostic_frags_exp = 'HexNAc & (HexNAc_ProA | dHex_HexNAc_ProA) & !Hex_HexNAc_ProA', 
-    ppm_val = i
+    mass_error_tolerance_type = 'ppm_tolerance', 
+    mass_error_tolerance_val = i
   )
   slc35a2_likely_glycan_spectrum_info_ms2 = slc35a2_diagnostic_results_ms2$spectrum_info
   # match the ms2 spectrum info to glycan lib 
   slc35a2_spectrum_matching_result_ms2 = GlycoMsHelper::FindPossibleGlycanComposition(
     spectrum_info = slc35a2_likely_glycan_spectrum_info_ms2, 
-    glycan_lib = N_glycan_library, max_precursor_mz_ppm = 20, max_possible_candidates_num = 3
+    glycan_lib = N_glycan_library, 
+    precursor_mass_error_tolerance_type = "ppm_tolerance",
+    precursor_mass_error_tolerance_val = 20, 
+    max_possible_candidates_num = 3
   )
   # find the composition by isotopics distribution
   slc35a2_glycan_spectrum_composition_info_ms2 = GlycoMsHelper::ValidateGlycanCompositionByIsotopePattern(
@@ -606,7 +613,10 @@ for (idx in seq_along(ppm_vec_ms1)) {
   # match the ms2 spectrum info to glycan lib 
   slc35a2_spectrum_matching_result_ms1 = GlycoMsHelper::FindPossibleGlycanComposition(
     spectrum_info = slc35a2_likely_glycan_spectrum_info_ms1, 
-    glycan_lib = N_glycan_library, max_precursor_mz_ppm = i, max_possible_candidates_num = 3
+    glycan_lib = N_glycan_library, 
+    precursor_mass_error_tolerance_type = "ppm_tolerance",
+    precursor_mass_error_tolerance_val = i, 
+    max_possible_candidates_num = 3
   )
   # find the composition by isotopics distribution
   slc35a2_glycan_spectrum_composition_info_ms1 = GlycoMsHelper::ValidateGlycanCompositionByIsotopePattern(
